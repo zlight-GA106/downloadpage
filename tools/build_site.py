@@ -187,17 +187,41 @@ def grid_html(apps):
 
 
 # ------------------------------------------------------------- page assembly
-def left_panels(apps, ctx, mode, active_id=None):
-    stat = ('<table class="stat" cellspacing="0" cellpadding="0" border="0">'
+def stats_table(ctx):
+    return ('<table class="stat" cellspacing="0" cellpadding="0" border="0">'
             '<tr><td>应用总数</td><td class="n">%d</td></tr>'
             '<tr><td>已发布版本</td><td class="n">%d</td></tr>'
             '<tr><td>最新版总量</td><td class="n wide">%s</td></tr>'
             '<tr><td>最近更新</td><td class="n wide">%s</td></tr>'
             '<tr><td>目录生成</td><td class="n wide">%s</td></tr>'
             '</table>'
-            % (len(apps), ctx["total_releases"], human_size(ctx["latest_bytes"]),
+            % (ctx["app_count"], ctx["total_releases"],
+               human_size(ctx["latest_bytes"]),
                esc(short_date(ctx["newest"])), esc(ctx["built"])))
 
+
+def status_table(ctx):
+    return ('<table class="stat" cellspacing="0" cellpadding="0" border="0">'
+            '<tr><td>服务程序</td><td class="n wide">EasyUpdate v0.1</td></tr>'
+            '<tr><td>服务地址</td><td class="n wide">%s</td></tr>'
+            '<tr><td>接口前缀</td><td class="n wide">/api/v1</td></tr>'
+            '<tr><td>连接状态</td><td class="n wide" id="sideStat">检测中</td></tr>'
+            '<tr><td>本次校验</td><td class="n wide" id="sideTime">-</td></tr>'
+            '</table>' % esc(ctx["server_host"]))
+
+
+def announcements_html(ctx):
+    anns = ctx["announcements"]
+    if not anns:
+        return '<div class="ann"><div class="c">暂无公告</div></div>'
+    return "".join('<div class="ann"><div class="t">%s</div>'
+                   '<div class="d">%s</div><div class="c">%s</div></div>'
+                   % (esc(a.get("title", "")),
+                      esc(iso_to_local(a.get("created_at", ""))),
+                      notes_html(a.get("content", ""))) for a in anns)
+
+
+def left_panels(apps, ctx, mode, active_id=None):
     if mode == "detail":
         items = []
         for a in apps:
@@ -217,29 +241,11 @@ def left_panels(apps, ctx, mode, active_id=None):
                          '<b>%d</b></a>' % (js_str(c), esc(c), n))
         second = panel("资源分类", "".join(items), extra="<b>%d</b>" % len(ctx["cats"]))
 
-    anns = ctx["announcements"]
-    if anns:
-        ab = "".join('<div class="ann"><div class="t">%s</div>'
-                     '<div class="d">%s</div><div class="c">%s</div></div>'
-                     % (esc(a.get("title", "")),
-                        esc(iso_to_local(a.get("created_at", ""))),
-                        notes_html(a.get("content", ""))) for a in anns)
-    else:
-        ab = '<div class="ann"><div class="c">暂无公告</div></div>'
-
-    side = ('<table class="stat" cellspacing="0" cellpadding="0" border="0">'
-            '<tr><td>服务程序</td><td class="n wide">EasyUpdate v0.1</td></tr>'
-            '<tr><td>服务地址</td><td class="n wide">%s</td></tr>'
-            '<tr><td>接口前缀</td><td class="n wide">/api/v1</td></tr>'
-            '<tr><td>连接状态</td><td class="n wide" id="sideStat">检测中</td></tr>'
-            '<tr><td>本次校验</td><td class="n wide" id="sideTime">-</td></tr>'
-            '</table>' % esc(ctx["server_host"]))
-
-    return (panel("资源统计", stat)
+    return (panel("资源统计", stats_table(ctx))
             + second
-            + panel("服务公告", '<div id="annBox">%s</div>' % ab,
-                    extra='<b id="annCnt">%d</b>' % len(anns))
-            + panel("服务状态", side))
+            + panel("服务公告", '<div id="annBox">%s</div>' % announcements_html(ctx),
+                    extra='<b id="annCnt">%d</b>' % len(ctx["announcements"]))
+            + panel("服务状态", status_table(ctx)))
 
 
 def shell(title, crumb, main, nav, ctx, refresh_label="刷新目录", scope=None):
@@ -504,17 +510,78 @@ def mobile_crumb(parts):
 
 
 def mobile_announcements(ctx):
-    anns = ctx["announcements"]
-    if anns:
-        ab = "".join('<div class="ann"><div class="t">%s</div>'
-                     '<div class="d">%s</div><div class="c">%s</div></div>'
-                     % (esc(a.get("title", "")),
-                        esc(iso_to_local(a.get("created_at", ""))),
-                        notes_html(a.get("content", ""))) for a in anns)
-    else:
-        ab = '<div class="ann"><div class="c">暂无公告</div></div>'
-    return panel("服务公告", '<div id="annBox">%s</div>' % ab,
-                 extra='<b id="annCnt">%d</b>' % len(anns))
+    return panel("服务公告", '<div id="annBox">%s</div>' % announcements_html(ctx),
+                 extra='<b id="annCnt">%d</b>' % len(ctx["announcements"]))
+
+
+# 桌面版左侧栏那四块（资源统计 / 资源分类 / 服务公告 / 服务状态）在手机版上
+# 各占一页，用这一排分区标签切换——同样是翻页，不靠滑动。
+MOBILE_SECTIONS = (("应用", "index.html", "apps"),
+                   ("分类", "cat.html", "cat"),
+                   ("公告", "notice.html", "notice"),
+                   ("状态", "info.html", "info"))
+
+
+def mobile_section_tabs(active):
+    tds = []
+    for label, href, key in MOBILE_SECTIONS:
+        if key == active:
+            tds.append('<td class="on">%s</td>' % esc(label))
+        else:
+            tds.append('<td><a href="%s">%s</a></td>' % (esc(href), esc(label)))
+    return ('<div class="mtabs sect"><table width="100%%" cellspacing="0" cellpadding="0" '
+            'border="0"><tr>%s</tr></table></div>' % "".join(tds))
+
+
+def mobile_nav_items(ctx, active=None):
+    """与桌面版左栏一致：一条「全部资源」，后面按分类各一条带计数。"""
+    items = ['<a class="nvi%s" href="index.html">'
+             '<img src="images/bullet.gif" width="9" height="9" alt="">全部资源'
+             '<b>%d</b></a>' % (" on" if active is None else "", ctx["app_count"])]
+    for i, (name, members) in enumerate(ctx["cat_apps"]):
+        items.append('<a class="nvi%s" href="cat-%d.html">'
+                     '<img src="images/bullet.gif" width="9" height="9" alt="">%s'
+                     '<b>%d</b></a>'
+                     % (" on" if active == i else "", i, esc(name), len(members)))
+    return "".join(items)
+
+
+def mobile_cat_page(apps, ctx):
+    main = mobile_section_tabs("cat") + panel(
+        "资源分类", mobile_nav_items(ctx),
+        extra="<b>%d</b>" % len(ctx["cat_apps"]))
+    crumb = mobile_crumb([("资源列表", "index.html"), ("资源分类", None)])
+    return mobile_shell("资源分类 - 工具下载", crumb, main, ctx)
+
+
+def mobile_cat_apps_page(apps, ctx, idx, page, pages):
+    name, members = ctx["cat_apps"][idx]
+    chunk = members[(page - 1) * MOBILE_LIST_SIZE:page * MOBILE_LIST_SIZE]
+    cards = "".join(mobile_card_html(a) for a in chunk)
+
+    def url(p):
+        return ("cat-%d.html" % idx if p == 1 else "cat-%d-%d.html" % (idx, p))
+
+    main = mobile_section_tabs("cat") + mobile_pager(page, pages, url) + cards
+    crumb = mobile_crumb([("资源列表", "index.html"),
+                          ("资源分类", "cat.html"), (name, None)])
+    foot = esc("分类「%s」· 共 %d 个应用 / %d 个版本 · 目录生成 %s"
+               % (name, len(members), ctx["total_releases"], ctx["built"]))
+    return mobile_shell("%s - 工具下载" % name, crumb, main, ctx, footer=foot)
+
+
+def mobile_notice_page(apps, ctx):
+    main = mobile_section_tabs("notice") + mobile_announcements(ctx)
+    crumb = mobile_crumb([("资源列表", "index.html"), ("服务公告", None)])
+    return mobile_shell("服务公告 - 工具下载", crumb, main, ctx)
+
+
+def mobile_info_page(apps, ctx):
+    main = (mobile_section_tabs("info")
+            + panel("资源统计", stats_table(ctx))
+            + panel("服务状态", status_table(ctx)))
+    crumb = mobile_crumb([("资源列表", "index.html"), ("服务状态", None)])
+    return mobile_shell("服务状态 - 工具下载", crumb, main, ctx)
 
 
 def mobile_index_page(apps, ctx, page, pages):
@@ -523,11 +590,7 @@ def mobile_index_page(apps, ctx, page, pages):
     # 页码留在翻页控件中间那一格，总数挪到页脚——挤在一格里 240px 宽会折行
     pager = mobile_pager(page, pages, mobile_list_url)
 
-    main = pager + cards
-    # 公告只挂在最后一页，避免每页都被顶高一截
-    if page == pages:
-        main += mobile_announcements(ctx)
-
+    main = mobile_section_tabs("apps") + pager + cards
     foot = esc("共 %d 个应用 / %d 个版本 · 目录生成 %s"
                % (len(apps), ctx["total_releases"], ctx["built"]))
     return mobile_shell("工具下载", "", main, ctx, footer=foot)
@@ -678,9 +741,11 @@ def build():
     ctx["total_releases"] = sum(len(published(a)) for a in apps)
     ctx["latest_bytes"] = sum((latest_of(a) or {}).get("bytes", 0) for a in apps)
     ctx["newest"] = max([r["date"] for a in apps for r in a["releases"]] or ["-"])
+    ctx["app_count"] = len(apps)
     ctx["cats"] = [(c, len([a for a in apps if a["cat"] == c]))
                    for c in CATEGORY_ORDER
                    if len([a for a in apps if a["cat"] == c])]
+    ctx["cat_apps"] = [(c, [a for a in apps if a["cat"] == c]) for c, _ in ctx["cats"]]
 
     for a in apps:
         a["card"] = card_html(a)
@@ -693,6 +758,16 @@ def build():
     list_pages = max(1, -(-len(apps) // MOBILE_LIST_SIZE))
     for p in range(1, list_pages + 1):
         pages["mobile/" + mobile_list_url(p)] = mobile_index_page(apps, ctx, p, list_pages)
+
+    # 桌面版左侧栏的四个面板，在手机版上各占一页
+    pages["mobile/cat.html"] = mobile_cat_page(apps, ctx)
+    for i, (name, members) in enumerate(ctx["cat_apps"]):
+        cat_pages = max(1, -(-len(members) // MOBILE_LIST_SIZE))
+        for p in range(1, cat_pages + 1):
+            key = ("cat-%d.html" % i if p == 1 else "cat-%d-%d.html" % (i, p))
+            pages["mobile/" + key] = mobile_cat_apps_page(apps, ctx, i, p, cat_pages)
+    pages["mobile/notice.html"] = mobile_notice_page(apps, ctx)
+    pages["mobile/info.html"] = mobile_info_page(apps, ctx)
 
     for a in apps:
         pages["mobile/app-%d.html" % a["id"]] = mobile_app_page(a, ctx)

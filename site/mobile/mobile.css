@@ -67,7 +67,7 @@ body.mob {
 #mcrumb a { color: #15628F; }
 #mcrumb span { color: #9BB8C9; padding: 0 4px; }
 
-#mmain { padding: 7px 8px 8px 8px; }
+#mmain { padding: 7px 8px 6px 8px; }
 
 /* ------------------------------------------------------------ 翻页控件 */
 /* 手机版以翻页为主：列表、历史版本、版本说明各自分页，一屏一页。
@@ -148,12 +148,12 @@ span.mpgoff {
 .mtabs { margin: 0 0 10px 0; }
 .mtabs table { table-layout: fixed; }
 .mtabs td {
-	height: 30px;
+	height: 28px;
 	background: #EAF7FF url(../images/m_hd.gif) repeat-x 0 0;
 	border: 1px solid #A8D6EF;
 	color: #15628F;
 	font-size: 13px;
-	line-height: 30px;
+	line-height: 28px;
 	text-align: center;
 	}
 .mtabs td.on {
@@ -167,6 +167,18 @@ span.mpgoff {
 	text-decoration: none;
 	}
 .mtabs td a:hover { color: #C4551B; text-decoration: none; }
+/* 分区标签（应用 / 分类 / 公告 / 状态）紧挨着下面的翻页控件，不留底部外边距 */
+.mtabs.sect { margin-bottom: 4px; }
+
+/* ------------------------------------------ 分类列表（复用桌面版的 a.nvi） */
+.mob a.nvi {
+	height: 36px;
+	border-bottom: 1px solid #E2F1FA;
+	font-size: 14px;
+	line-height: 36px;
+	}
+.mob a.nvi b { right: 10px; font-size: 13px; }
+.mob a.nvi img { margin-right: 7px; }
 
 .mcount {
 	padding: 0 2px 8px 2px;
@@ -177,8 +189,8 @@ span.mpgoff {
 /* --------------------------------------------------------------- 应用卡 */
 .mcard {
 	position: relative;
-	margin: 0 0 6px 0;
-	padding: 7px;
+	margin: 0 0 5px 0;
+	padding: 6px;
 	background: #FFFFFF;
 	border: 1px solid #7FB9DC;
 	}
@@ -199,7 +211,7 @@ span.mpgoff {
 .mcard .mname {
 	color: #0B4A70;
 	font-size: 16px;
-	line-height: 22px;
+	line-height: 20px;
 	font-weight: bold;
 	}
 .mcard .mpkg {
@@ -209,24 +221,24 @@ span.mpgoff {
 	line-height: 15px;
 	}
 .mcard .mdesc {
-	height: 36px;
-	margin: 3px 0 0 0;
+	height: 34px;
+	margin: 2px 0 0 0;
 	color: #2E5B76;
-	line-height: 18px;
+	line-height: 17px;
 	overflow: hidden;
 	}
 .mcard .mmeta {
-	margin: 5px 0 0 0;
-	padding: 3px 0 0 0;
+	margin: 4px 0 0 0;
+	padding: 2px 0 0 0;
 	border-top: 1px solid #E2F1FA;
 	color: #6E93A8;
 	font-size: 12px;
-	line-height: 18px;
+	line-height: 17px;
 	}
 .mcard .mmeta b { color: #12557F; font-weight: bold; }
 
 /* 按钮：触屏尺寸，一行两个平分 */
-table.mact { margin: 6px 0 0 0; }
+table.mact { margin: 5px 0 0 0; }
 table.mact td.l { padding-right: 5px; }
 table.mact td.r { padding-left: 5px; }
 a.mbtn {
