@@ -1,0 +1,25 @@
+# ---------------------------------------------------------------- secrets
+# real credentials live here; only deploy.env.example is committed
+tools/deploy.env
+
+# ------------------------------------------------------- generated locally
+# intermediate build products: harvested catalogue, preview screenshots,
+# a throwaway browser profile used for headless screenshots, ...
+build/
+
+# a checkout of the EasyUpdate source, if you cloned it here for reference
+_upstream/
+
+# --------------------------------------------------------------- python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ------------------------------------------------------------- os / editor
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
+.idea/
+.vscode/

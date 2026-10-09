@@ -1,0 +1,9 @@
+# normalise line endings to LF in the repository and in the working tree:
+# the site is served from Linux containers and the build scripts write LF,
+# so letting CRLF creep in only produces noise in diffs
+* text=auto eol=lf
+
+*.png binary
+*.gif binary
+*.ico binary
+*.jpg binary
