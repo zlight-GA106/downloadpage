@@ -67,7 +67,106 @@ body.mob {
 #mcrumb a { color: #15628F; }
 #mcrumb span { color: #9BB8C9; padding: 0 4px; }
 
-#mmain { padding: 8px 8px 12px 8px; }
+#mmain { padding: 7px 8px 8px 8px; }
+
+/* ------------------------------------------------------------ 翻页控件 */
+/* 手机版以翻页为主：列表、历史版本、版本说明各自分页，一屏一页。
+   翻页控件在列表页上下各放一份，不必先滑到底才能翻页。 */
+.mpager {
+	margin: 0 0 6px 0;
+	padding: 5px 7px;
+	background: #FFFFFF url(../images/m_hd.gif) repeat-x 0 0;
+	border: 1px solid #7FB9DC;
+	}
+/* 两侧按钮给 60px 就够放下「上一页」，中间那格留宽一点，
+   否则 240px 宽的老机器上「第 1/2 页」会被挤到折行 */
+.mpager td.l { width: 60px; }
+.mpager td.r { width: 60px; text-align: right; }
+.mpager td.c {
+	text-align: center;
+	color: #2C6E96;
+	font-size: 12px;
+	white-space: nowrap;
+	}
+a.mpg {
+	display: block;
+	height: 28px;
+	background: #DDEEF9 url(../images/m_btn.gif) repeat-x 0 0;
+	border: 1px solid #6FA8CC;
+	color: #10456B;
+	font-size: 13px;
+	line-height: 28px;
+	text-align: center;
+	text-decoration: none;
+	overflow: hidden;
+	white-space: nowrap;
+	}
+a.mpg:hover {
+	background-image: url(../images/m_btn_on.gif);
+	color: #06233A;
+	text-decoration: none;
+	}
+span.mpgoff {
+	display: block;
+	height: 28px;
+	border: 1px solid #C9DEEB;
+	color: #9BB8C9;
+	font-size: 13px;
+	line-height: 28px;
+	text-align: center;
+	/* 不放这两个属性的话，文字比格子宽时会折行并溢出到框外 */
+	overflow: hidden;
+	white-space: nowrap;
+	}
+
+/* 版本说明页底部的「按版本翻页」：两侧要放下版本号，比列表页的翻页控件宽 */
+.mpager.pgnav td.l { width: 40%; }
+.mpager.pgnav td.r { width: 40%; text-align: right; }
+.mpager.pgnav td.c { width: 20%; }
+.mpgnum { padding: 6px 0 0 0; text-align: center; }
+.mpgnum a, .mpgnum b {
+	display: inline-block;
+	width: 26px;
+	height: 22px;
+	margin: 0 2px;
+	color: #12557F;
+	font-size: 13px;
+	font-weight: normal;
+	line-height: 22px;
+	text-align: center;
+	text-decoration: none;
+	zoom: 1;
+	}
+.mpgnum b.mpgon {
+	background: #3E9CD4 url(../images/navsel.gif) repeat-x 0 0;
+	color: #FFFFFF;
+	font-weight: bold;
+	}
+.mpgnum a.mpgn:hover { background: #EAF7FF; color: #0B4A70; }
+
+/* ---------------------------------------------------- 详情页的翻页标签 */
+.mtabs { margin: 0 0 10px 0; }
+.mtabs table { table-layout: fixed; }
+.mtabs td {
+	height: 30px;
+	background: #EAF7FF url(../images/m_hd.gif) repeat-x 0 0;
+	border: 1px solid #A8D6EF;
+	color: #15628F;
+	font-size: 13px;
+	line-height: 30px;
+	text-align: center;
+	}
+.mtabs td.on {
+	background: #C8EAFB url(../images/navsel.gif) repeat-x 0 0;
+	color: #0B4A70;
+	font-weight: bold;
+	}
+.mtabs td a {
+	display: block;
+	color: #15628F;
+	text-decoration: none;
+	}
+.mtabs td a:hover { color: #C4551B; text-decoration: none; }
 
 .mcount {
 	padding: 0 2px 8px 2px;
@@ -78,8 +177,8 @@ body.mob {
 /* --------------------------------------------------------------- 应用卡 */
 .mcard {
 	position: relative;
-	margin: 0 0 10px 0;
-	padding: 9px;
+	margin: 0 0 6px 0;
+	padding: 7px;
 	background: #FFFFFF;
 	border: 1px solid #7FB9DC;
 	}
@@ -110,13 +209,15 @@ body.mob {
 	line-height: 15px;
 	}
 .mcard .mdesc {
+	height: 36px;
 	margin: 3px 0 0 0;
 	color: #2E5B76;
-	line-height: 19px;
+	line-height: 18px;
+	overflow: hidden;
 	}
 .mcard .mmeta {
-	margin: 7px 0 0 0;
-	padding: 5px 0 0 0;
+	margin: 5px 0 0 0;
+	padding: 3px 0 0 0;
 	border-top: 1px solid #E2F1FA;
 	color: #6E93A8;
 	font-size: 12px;
@@ -125,7 +226,7 @@ body.mob {
 .mcard .mmeta b { color: #12557F; font-weight: bold; }
 
 /* 按钮：触屏尺寸，一行两个平分 */
-table.mact { margin: 8px 0 0 0; }
+table.mact { margin: 6px 0 0 0; }
 table.mact td.l { padding-right: 5px; }
 table.mact td.r { padding-left: 5px; }
 a.mbtn {
@@ -171,7 +272,7 @@ a.mbtn.big {
 	}
 
 .mrow {
-	padding: 8px 0;
+	padding: 7px 0;
 	border-bottom: 1px dashed #CBE6F6;
 	}
 .mrow .rv {
@@ -219,10 +320,10 @@ a.mbtn.big {
 .mob table.stat td.n.wide { font-size: 12px; }
 
 #mfoot {
-	padding: 10px;
+	padding: 7px;
 	background: #3E7D14 url(../images/footer.gif) repeat-x 0 0;
 	color: #F4FFE8;
 	font-size: 11px;
-	line-height: 18px;
+	line-height: 16px;
 	text-align: center;
 	}

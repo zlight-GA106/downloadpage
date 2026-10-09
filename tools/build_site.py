@@ -409,7 +409,7 @@ def mobile_card_html(app):
            "dl": esc(dl_url(app, latest)) if latest else "#"})
 
 
-def mobile_shell(title, crumb, main, ctx, scope=None):
+def mobile_shell(title, crumb, main, ctx, scope=None, footer=None):
     scope_js = ""
     if scope is not None:
         scope_js = ('<script type="text/javascript">var EU_SCOPE = [%s];</script>'
@@ -419,12 +419,91 @@ def mobile_shell(title, crumb, main, ctx, scope=None):
             .replace("{{CRUMB}}", crumb)
             .replace("{{MAIN}}", main)
             .replace("{{SCOPE}}", scope_js)
-            .replace("{{BUILT}}", esc(ctx["built"])))
+            .replace("{{FOOT}}", footer or esc("目录生成 " + ctx["built"])))
 
 
-def mobile_index_page(apps, ctx):
-    cards = "".join(mobile_card_html(a) for a in apps)
+# 手机版以翻页为主：应用列表、历史版本、版本说明各自分页，
+# 每屏尽量不出现长滚动。全部是构建期生成的静态页面，
+# 不依赖脚本，翻页就是普通链接，IE6 与老式手机浏览器都能用。
+MOBILE_LIST_SIZE = 3      # 应用列表每页条数（按 320px 宽实测，3 条约 610px 高，接近一屏）
+MOBILE_VER_SIZE = 6       # 历史版本每页条数
 
+
+def mobile_list_url(page):
+    return "index.html" if page == 1 else "p%d.html" % page
+
+
+def mobile_ver_url(app_id, page):
+    return ("app-%d-v.html" % app_id if page == 1
+            else "app-%d-v%d.html" % (app_id, page))
+
+
+def mobile_notes_url(app, rel):
+    return "app-%d-n%d.html" % (app["id"], rel["code"])
+
+
+def mobile_note_entry(app):
+    """Where the 版本说明 tab points: the newest version that has notes."""
+    for r in published(app):                 # published() is newest-first
+        if r.get("notes"):
+            return mobile_notes_url(app, r)
+    return "app-%d-n.html" % app["id"]
+
+
+def mobile_pager(page, pages, url_fn, center=None):
+    """上一页 / 中间说明 / 下一页，一行放下。
+
+    页码直链只在页数多于 4 时才另起一行——页数少的时候前翻后翻就够了，
+    多出来的那一行会把列表页顶高一截，与「减少滑动」的目标相反。
+    """
+    if pages <= 1:
+        return ""
+    prev = ('<a class="mpg" href="%s">上一页</a>' % url_fn(page - 1)
+            if page > 1 else '<span class="mpgoff">上一页</span>')
+    nxt = ('<a class="mpg" href="%s">下一页</a>' % url_fn(page + 1)
+           if page < pages else '<span class="mpgoff">下一页</span>')
+    mid = center if center is not None else "第 %d / %d 页" % (page, pages)
+    numrow = ""
+    if pages > 4:
+        nums = []
+        for i in range(1, pages + 1):
+            nums.append('<b class="mpgon">%d</b>' % i if i == page
+                        else '<a class="mpgn" href="%s">%d</a>' % (url_fn(i), i))
+        numrow = '<div class="mpgnum">%s</div>' % "".join(nums)
+    return ('<div class="mpager">'
+            '<table width="100%%" cellspacing="0" cellpadding="0" border="0"><tr>'
+            '<td class="l">%s</td><td class="c">%s</td>'
+            '<td class="r">%s</td></tr></table>%s</div>'
+            # mid is not escaped: callers pass either a plain string or markup
+            # they built themselves (it used to be escaped, which turned a
+            # &middot; in the caller's string into a literal "&middot;")
+            % (prev, mid, nxt, numrow))
+
+
+def mobile_tabs(app, active):
+    items = (("概览", "app-%d.html" % app["id"], "ov"),
+             ("历史版本", "app-%d-v.html" % app["id"], "ver"),
+             ("版本说明", mobile_note_entry(app), "note"))
+    tds = []
+    for label, href, key in items:
+        if key == active:
+            tds.append('<td class="on">%s</td>' % esc(label))
+        else:
+            tds.append('<td><a href="%s">%s</a></td>' % (esc(href), esc(label)))
+    return ('<div class="mtabs"><table width="100%%" cellspacing="0" cellpadding="0" '
+            'border="0"><tr>%s</tr></table></div>' % "".join(tds))
+
+
+def mobile_crumb(parts):
+    """parts: [(label, href or None), ...]"""
+    out = []
+    for label, href in parts:
+        out.append('<a href="%s">%s</a>' % (esc(href), esc(label)) if href
+                   else esc(label))
+    return '<div id="mcrumb">%s</div>' % ' <span>&gt;</span> '.join(out)
+
+
+def mobile_announcements(ctx):
     anns = ctx["announcements"]
     if anns:
         ab = "".join('<div class="ann"><div class="t">%s</div>'
@@ -434,39 +513,29 @@ def mobile_index_page(apps, ctx):
                         notes_html(a.get("content", ""))) for a in anns)
     else:
         ab = '<div class="ann"><div class="c">暂无公告</div></div>'
-
-    main = ('<div class="mcount">共 %d 个应用 / %d 个已发布版本</div>%s'
-            % (len(apps), ctx["total_releases"], cards)
-            + panel("服务公告", '<div id="annBox">%s</div>' % ab,
-                    extra='<b id="annCnt">%d</b>' % len(anns)))
-
-    return mobile_shell("工具下载", "", main, ctx)
+    return panel("服务公告", '<div id="annBox">%s</div>' % ab,
+                 extra='<b id="annCnt">%d</b>' % len(anns))
 
 
-def mobile_detail_page(app, apps, ctx):
+def mobile_index_page(apps, ctx, page, pages):
+    chunk = apps[(page - 1) * MOBILE_LIST_SIZE:page * MOBILE_LIST_SIZE]
+    cards = "".join(mobile_card_html(a) for a in chunk)
+    # 页码留在翻页控件中间那一格，总数挪到页脚——挤在一格里 240px 宽会折行
+    pager = mobile_pager(page, pages, mobile_list_url)
+
+    main = pager + cards
+    # 公告只挂在最后一页，避免每页都被顶高一截
+    if page == pages:
+        main += mobile_announcements(ctx)
+
+    foot = esc("共 %d 个应用 / %d 个版本 · 目录生成 %s"
+               % (len(apps), ctx["total_releases"], ctx["built"]))
+    return mobile_shell("工具下载", "", main, ctx, footer=foot)
+
+
+def mobile_app_page(app, ctx):
+    """详情 · 概览：应用信息 + 下载最新版 + 版本信息。"""
     latest = latest_of(app)
-    pub = published(app)
-
-    rows = []
-    notes = []
-    for r in pub:
-        rows.append(
-            '<div class="mrow"><table width="100%%" cellspacing="0" cellpadding="0" '
-            'border="0"><tr>'
-            '<td valign="middle"><span class="rv">%s</span>'
-            '<span class="rs">%s &middot; %s &middot; #%d</span></td>'
-            '<td width="74" class="ract" valign="middle">'
-            '<a class="mbtn" href="%s" title="%s">下载</a></td>'
-            '</tr></table></div>'
-            % (esc(r["name"]),
-               esc(r.get("size") or human_size(r.get("bytes", 0))),
-               esc(r["date"]), r["code"],
-               esc(dl_url(app, r)), esc(r.get("file") or r["name"])))
-        if r.get("notes"):
-            notes.append('<div class="rel"><div class="relhd">%s'
-                         '<span>%s &middot; %s</span></div><div class="relbd">%s</div></div>'
-                         % (esc(r["name"]), esc(r["date"]),
-                            esc(r.get("size") or ""), notes_html(r["notes"])))
 
     # 16 hex chars per line: on a 240px screen a 32-char chunk would be clipped
     sha = (latest or {}).get("sha256", "")
@@ -488,35 +557,101 @@ def mobile_detail_page(app, apps, ctx):
            "ver": esc(latest["name"] if latest else "-"),
            "dl": esc(dl_url(app, latest)) if latest else "#"})
 
-    # single-column definition rows rather than a two-column table: a table
-    # would size its label column to the longest label and then clip the
-    # values once the screen gets down to 240px
+    # 单列「标签 值」行：两列表格会先把标签列占满，窄屏上把日期和 SHA256 挤到裁掉
     def drow(label, value, mid=None):
         return ('<div class="drow"><b>%s</b><span%s>%s</span></div>'
                 % (esc(label), ' id="%s"' % mid if mid else "", value))
 
     info = ('<div class="mdef">'
             + drow("版本号", str(latest["code"] if latest else 0))
-            + drow("文件大小", esc((latest or {}).get("size") or "-"), "siz%d" % app["id"])
-            + drow("发布日期", esc((latest or {}).get("date") or "-"), "dat%d" % app["id"])
+            + drow("文件大小", esc((latest or {}).get("size") or "-"),
+                   "siz%d" % app["id"])
+            + drow("发布日期", esc((latest or {}).get("date") or "-"),
+                   "dat%d" % app["id"])
             + drow("APK 文件名", esc((latest or {}).get("file") or "-"))
             + drow("强制更新", "是" if (latest or {}).get("mandatory") else "否")
             + drow("SHA256", '<span class="mono hash">%s</span>' % sha_html)
             + '</div>')
 
-    main = (head
-            + panel("版本信息", info)
-            + panel("版本列表", "".join(rows) or
-                    '<div class="empty">该应用尚无已发布版本。</div>',
-                    extra="<b>%d</b>" % len(pub))
-            + panel("版本说明", "".join(notes) or
-                    '<div class="ann"><div class="c">暂无版本说明。</div></div>'))
+    crumb = mobile_crumb([("资源列表", "index.html"), (app["name"], None)])
+    return mobile_shell("%s - 工具下载" % app["name"], crumb,
+                        mobile_tabs(app, "ov") + head + panel("版本信息", info),
+                        ctx, scope=[app["id"]])
 
-    crumb = ('<div id="mcrumb"><a href="index.html">资源列表</a>'
-             ' <span>&gt;</span> %s</div>' % esc(app["name"]))
 
-    return mobile_shell("%s - 工具下载" % app["name"], crumb, main, ctx,
-                        scope=[app["id"]])
+def mobile_versions_page(app, ctx, page, pages):
+    """详情 · 历史版本：每页若干版本，版本名指向该版本的说明页。"""
+    pub = published(app)
+    chunk = pub[(page - 1) * MOBILE_VER_SIZE:page * MOBILE_VER_SIZE]
+
+    rows = []
+    for r in chunk:
+        name = (esc(r["name"]) if not r.get("notes")
+                else '<a href="%s">%s</a>'
+                     % (esc(mobile_notes_url(app, r)), esc(r["name"])))
+        rows.append(
+            '<div class="mrow"><table width="100%%" cellspacing="0" cellpadding="0" '
+            'border="0"><tr>'
+            '<td valign="middle"><span class="rv">%s</span>'
+            '<span class="rs">%s &middot; %s &middot; #%d</span></td>'
+            '<td width="74" class="ract" valign="middle">'
+            '<a class="mbtn" href="%s" title="%s">下载</a></td>'
+            '</tr></table></div>'
+            % (name,
+               esc(r.get("size") or human_size(r.get("bytes", 0))),
+               esc(r["date"]), r["code"],
+               esc(dl_url(app, r)), esc(r.get("file") or r["name"])))
+
+    body = (mobile_pager(page, pages, lambda p: mobile_ver_url(app["id"], p))
+            + ("".join(rows) or '<div class="empty">该应用尚无已发布版本。</div>')
+            + mobile_pager(page, pages, lambda p: mobile_ver_url(app["id"], p)))
+
+    crumb = mobile_crumb([("资源列表", "index.html"),
+                          (app["name"], "app-%d.html" % app["id"]),
+                          ("历史版本", None)])
+    return mobile_shell("%s 历史版本 - 工具下载" % app["name"], crumb,
+                        mobile_tabs(app, "ver")
+                        + panel("历史版本", body, extra="<b>%d</b>" % len(pub)),
+                        ctx, scope=[app["id"]])
+
+
+def mobile_notes_page(app, ctx, rel, newer, older):
+    """详情 · 版本说明：一次只放一个版本的说明，靠上一版/下一版翻页。"""
+    if rel is None:
+        body = '<div class="ann"><div class="c">暂无版本说明。</div></div>'
+    else:
+        body = ('<div class="rel"><div class="relhd">%s'
+                '<span>%s &middot; %s &middot; #%d</span></div>'
+                '<div class="relbd">%s</div></div>'
+                % (esc(rel["name"]), esc(rel["date"]),
+                   esc(rel.get("size") or ""), rel["code"],
+                   notes_html(rel.get("notes", ""))))
+
+    nav = ""
+    if newer or older:
+        left = ('<a class="mpg" href="%s">&larr; %s</a>'
+                % (esc(mobile_notes_url(app, newer)), esc(newer["name"]))
+                if newer else '<span class="mpgoff">最新版</span>')
+        right = ('<a class="mpg" href="%s">%s &rarr;</a>'
+                 % (esc(mobile_notes_url(app, older)), esc(older["name"]))
+                 if older else '<span class="mpgoff">最早版</span>')
+        nav = ('<div class="mpager pgnav">'
+               '<table width="100%%" cellspacing="0" cellpadding="0" border="0"><tr>'
+               '<td class="l">%s</td><td class="c">翻页</td>'
+               '<td class="r">%s</td></tr></table></div>' % (left, right))
+
+    title = ("%s %s 版本说明" % (app["name"], rel["name"]) if rel
+             else "%s 版本说明" % app["name"])
+    crumb = mobile_crumb([("资源列表", "index.html"),
+                          (app["name"], "app-%d.html" % app["id"]),
+                          ("版本说明", None)])
+    # 不再另挂「返回概览 / 全部历史版本」面板：上面那排翻页标签就是这两个入口，
+    # 多一块面板会把这一页顶过一屏
+    return mobile_shell("%s - 工具下载" % title, crumb,
+                        mobile_tabs(app, "note")
+                        + panel("版本说明", body)
+                        + nav,
+                        ctx, scope=[app["id"]])
 
 
 # ------------------------------------------------------------------- output
@@ -553,9 +688,31 @@ def build():
     pages = {"index.html": index_page(apps, ctx)}
     for a in apps:
         pages["app-%d.html" % a["id"]] = detail_page(a, apps, ctx)
-    pages["mobile/index.html"] = mobile_index_page(apps, ctx)
+
+    # --- mobile: everything is paginated, nothing relies on scrolling ----
+    list_pages = max(1, -(-len(apps) // MOBILE_LIST_SIZE))
+    for p in range(1, list_pages + 1):
+        pages["mobile/" + mobile_list_url(p)] = mobile_index_page(apps, ctx, p, list_pages)
+
     for a in apps:
-        pages["mobile/app-%d.html" % a["id"]] = mobile_detail_page(a, apps, ctx)
+        pages["mobile/app-%d.html" % a["id"]] = mobile_app_page(a, ctx)
+
+        pub = published(a)
+        ver_pages = max(1, -(-len(pub) // MOBILE_VER_SIZE))
+        for p in range(1, ver_pages + 1):
+            pages["mobile/" + mobile_ver_url(a["id"], p)] = \
+                mobile_versions_page(a, ctx, p, ver_pages)
+
+        noted = [r for r in pub if r.get("notes")]
+        if noted:
+            for i, r in enumerate(noted):
+                newer = noted[i - 1] if i > 0 else None
+                older = noted[i + 1] if i + 1 < len(noted) else None
+                pages["mobile/" + mobile_notes_url(a, r)] = \
+                    mobile_notes_page(a, ctx, r, newer, older)
+        else:
+            pages["mobile/app-%d-n.html" % a["id"]] = \
+                mobile_notes_page(a, ctx, None, None, None)
 
     total = 0
     for name, html in pages.items():
@@ -691,7 +848,7 @@ MOBILE_TEMPLATE = r"""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional/
 {{MAIN}}
 </div>
 
-<div id="mfoot">工具下载 &middot; 目录生成 {{BUILT}}</div>
+<div id="mfoot">工具下载 &middot; {{FOOT}}</div>
 
 </div>
 {{SCOPE}}
