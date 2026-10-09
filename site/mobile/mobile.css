@@ -1,0 +1,228 @@
+@charset "utf-8";
+/* 工具下载 · 手机版
+   在 ../style.css 之上做覆盖，不另起一套皮肤。
+   与桌面版同守一套 IE6 约束：只用表格布局、零浮动、GIF/PNG-8 位图条带、
+   非 a 元素的 :hover 一概不用；不依赖 max-width / media query / 视口单位，
+   所以老式手机浏览器（含 Windows Mobile 上的 IE）也能正常显示。 */
+
+body.mob {
+	font-size: 14px;
+	line-height: 20px;
+	}
+
+#mwrap {
+	width: 100%;
+	background: #EAF6FD;
+	}
+
+/* ------------------------------------------------------------- 顶部标题 */
+/* 高度不写死：240px 宽的老机器上副标题会折行，写死高度会压到下面的状态条。
+   背景色取 48px 渐变条带的最后一色，条带不够高时向下延伸看不出接缝。 */
+#mhead {
+	padding: 6px 0;
+	background: #276E9E url(../images/m_bar.gif) repeat-x 0 0;
+	color: #FFFFFF;
+	}
+#mhead td { padding: 0 8px; color: #FFFFFF; }
+#mhead .mt {
+	display: block;
+	color: #FFFFFF;
+	font-size: 17px;
+	line-height: 21px;
+	font-weight: bold;
+	letter-spacing: 2px;
+	}
+#mhead .ms {
+	display: block;
+	color: #D6EEFF;
+	font-size: 11px;
+	line-height: 14px;
+	}
+#mhead td.mr { text-align: right; white-space: nowrap; }
+#mhead td.mr a {
+	color: #FFFFFF;
+	font-size: 12px;
+	text-decoration: underline;
+	}
+
+/* ------------------------------------------------------------- 状态条 */
+#mstat {
+	height: 26px;
+	margin: 0 0 8px 0;
+	padding: 0 8px;
+	background: #FFFFFF url(../images/subhd.gif) repeat-x 0 0;
+	border-bottom: 1px solid #A8D6EF;
+	color: #10456B;
+	font-size: 12px;
+	line-height: 26px;
+	}
+#mstat img { vertical-align: -1px; margin-right: 5px; }
+#mstat td.r { text-align: right; color: #2C6E96; }
+
+#mcrumb {
+	padding: 8px 10px 0 10px;
+	color: #5A7E93;
+	font-size: 12px;
+	}
+#mcrumb a { color: #15628F; }
+#mcrumb span { color: #9BB8C9; padding: 0 4px; }
+
+#mmain { padding: 8px 8px 12px 8px; }
+
+.mcount {
+	padding: 0 2px 8px 2px;
+	color: #2C6E96;
+	font-size: 12px;
+	}
+
+/* --------------------------------------------------------------- 应用卡 */
+.mcard {
+	position: relative;
+	margin: 0 0 10px 0;
+	padding: 9px;
+	background: #FFFFFF;
+	border: 1px solid #7FB9DC;
+	}
+.mcard .cn {
+	position: absolute;
+	width: 9px;
+	height: 9px;
+	font-size: 0;
+	line-height: 0;
+	overflow: hidden;
+	background-repeat: no-repeat;
+	}
+.mcard .tl { left: -1px;  top: -1px;    background-image: url(../images/cn_tl.gif); }
+.mcard .tr { right: -1px; top: -1px;    background-image: url(../images/cn_tr.gif); }
+.mcard .bl { left: -1px;  bottom: -1px; background-image: url(../images/cn_bl.gif); }
+.mcard .br { right: -1px; bottom: -1px; background-image: url(../images/cn_br.gif); }
+
+.mcard .mname {
+	color: #0B4A70;
+	font-size: 16px;
+	line-height: 22px;
+	font-weight: bold;
+	}
+.mcard .mpkg {
+	color: #6E93A8;
+	font-family: Tahoma, Arial, sans-serif;
+	font-size: 11px;
+	line-height: 15px;
+	}
+.mcard .mdesc {
+	margin: 3px 0 0 0;
+	color: #2E5B76;
+	line-height: 19px;
+	}
+.mcard .mmeta {
+	margin: 7px 0 0 0;
+	padding: 5px 0 0 0;
+	border-top: 1px solid #E2F1FA;
+	color: #6E93A8;
+	font-size: 12px;
+	line-height: 18px;
+	}
+.mcard .mmeta b { color: #12557F; font-weight: bold; }
+
+/* 按钮：触屏尺寸，一行两个平分 */
+table.mact { margin: 8px 0 0 0; }
+table.mact td.l { padding-right: 5px; }
+table.mact td.r { padding-left: 5px; }
+a.mbtn {
+	display: block;
+	height: 32px;
+	background: #DDEEF9 url(../images/m_btn.gif) repeat-x 0 0;
+	border: 1px solid #6FA8CC;
+	color: #10456B;
+	font-family: Tahoma, Arial, SimSun, sans-serif;
+	font-size: 14px;
+	line-height: 32px;
+	text-align: center;
+	text-decoration: none;
+	overflow: hidden;
+	}
+a.mbtn:hover {
+	background-image: url(../images/m_btn_on.gif);
+	color: #06233A;
+	text-decoration: none;
+	}
+a.mbtn.dl {
+	height: 36px;
+	background-image: url(../images/m_dl.gif);
+	border-color: #4E8A22;
+	color: #1E4A06;
+	font-weight: bold;
+	line-height: 36px;
+	}
+a.mbtn.dl:hover { background-image: url(../images/m_dl_on.gif); }
+a.mbtn.big {
+	margin: 10px 0 0 0;
+	height: 40px;
+	line-height: 40px;
+	font-size: 15px;
+	}
+
+/* ------------------------------------------------------------- 详情页 */
+.mhead-card .mname { font-size: 18px; line-height: 24px; }
+.mhead-card .mmeta {
+	border-top: 0;
+	padding-top: 2px;
+	margin-top: 4px;
+	}
+
+.mrow {
+	padding: 8px 0;
+	border-bottom: 1px dashed #CBE6F6;
+	}
+.mrow .rv {
+	display: block;
+	color: #0B4A70;
+	font-size: 15px;
+	line-height: 20px;
+	font-weight: bold;
+	}
+.mrow .rs {
+	display: block;
+	color: #6E93A8;
+	font-size: 11px;
+	line-height: 16px;
+	}
+.mrow td.ract { padding-left: 8px; }
+
+/* 版本信息：单列「标签 值」行，让长值自然折行。
+   用两列表格的话，窄屏上标签列会先占满宽度，把日期和 SHA256 挤到裁掉。 */
+.mdef { color: #2E5B76; }
+.mdef .drow {
+	padding: 5px 0;
+	border-bottom: 1px solid #EEF8FE;
+	line-height: 18px;
+	}
+.mdef .drow b {
+	color: #6E93A8;
+	font-weight: normal;
+	padding-right: 6px;
+	}
+.mdef .drow span { color: #12557F; }
+.mdef .hash { color: #12557F; font-size: 11px; line-height: 15px; }
+
+/* 详情页沿用的面板与统计表在窄屏下的调整 */
+.mob .pnl { margin-bottom: 10px; }
+.mob .pnl .hd { height: 30px; line-height: 30px; background-image: url(../images/m_hd.gif); }
+.mob .pnl .bd { padding: 9px; }
+.mob table.stat td { padding: 3px 0; font-size: 13px; }
+.mob .relhd { font-size: 14px; }
+.mob .relbd { padding: 8px; }
+.mob .ann .d { font-size: 11px; }
+.mob .empty { padding: 20px 8px; }
+
+/* 统计表的值列在窄屏下可能换行，收小一号 */
+.mob table.stat td.n.wide { font-size: 12px; }
+
+#mfoot {
+	padding: 10px;
+	background: #3E7D14 url(../images/footer.gif) repeat-x 0 0;
+	color: #F4FFE8;
+	font-size: 11px;
+	line-height: 18px;
+	text-align: center;
+	}

@@ -129,6 +129,30 @@ def build_strips():
                         (0.52, (0x84, 0xCB, 0x36)), (1.00, (0x3E, 0x7D, 0x14))]),
              "footer.gif")
 
+    # ---- mobile: same skin, taller strips -------------------------------
+    # A repeat-x strip only covers the first N pixels vertically; anything
+    # below falls back to the flat background colour, so touch-sized controls
+    # need their own taller gradients rather than a stretched 23px one.
+    save_gif(gloss(48, [(0.00, (0x2A, 0x7B, 0xAE)), (0.14, (0x3E, 0x9C, 0xD4)),
+                        (0.42, (0x8F, 0xD1, 0xF0)), (0.50, (0x6F, 0xC0, 0xE8)),
+                        (0.86, (0x37, 0x8C, 0xC2)), (1.00, (0x27, 0x6E, 0x9E))]),
+             "m_bar.gif")
+    save_gif(gloss(30, [(0.00, (0xFF, 0xFF, 0xFF)), (0.10, (0xEC, 0xF8, 0xFF)),
+                        (0.48, (0xC2, 0xE7, 0xFA)), (0.52, (0xA6, 0xDA, 0xF3)),
+                        (1.00, (0x63, 0xB4, 0xE0))]), "m_hd.gif")
+    save_gif(gloss(34, [(0.00, (0xFF, 0xFF, 0xFF)), (0.44, (0xDD, 0xF1, 0xFC)),
+                        (0.52, (0xAC, 0xDA, 0xF4)), (1.00, (0x5F, 0xAE, 0xDD))]),
+             "m_btn.gif")
+    save_gif(gloss(34, [(0.00, (0xFF, 0xFF, 0xFF)), (0.44, (0xEE, 0xFA, 0xFF)),
+                        (0.52, (0xC6, 0xEC, 0xFF)), (1.00, (0x3E, 0x9B, 0xD8))]),
+             "m_btn_on.gif")
+    save_gif(gloss(38, [(0.00, (0xF4, 0xFF, 0xE2)), (0.42, (0xCE, 0xF0, 0x96)),
+                        (0.52, (0x9B, 0xD8, 0x4E)), (1.00, (0x4E, 0x9E, 0x18))]),
+             "m_dl.gif")
+    save_gif(gloss(38, [(0.00, (0xFF, 0xFF, 0xEE)), (0.42, (0xE4, 0xFA, 0xBC)),
+                        (0.52, (0xB6, 0xE8, 0x6A)), (1.00, (0x3E, 0x88, 0x10))]),
+             "m_dl_on.gif")
+
 
 # ------------------------------------------------------------------- sky band
 HERO_H = 116

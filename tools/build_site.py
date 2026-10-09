@@ -375,6 +375,150 @@ def index_page(apps, ctx):
     return shell("工具下载", crumb, main, left_panels(apps, ctx, "index"), ctx)
 
 
+# ------------------------------------------------------------------ mobile
+# Same constraint set as the desktop pages (tables, no floats, GIF/PNG-8
+# strips, ES3), only the sizing differs. The pages live in site/mobile/, reuse
+# ../style.css for the skin with mobile.css layered on top, and share
+# ../app.js for the live version check - so nothing is duplicated.
+def mobile_card_html(app):
+    latest = latest_of(app)
+    size_txt = (latest.get("size") or human_size(latest.get("bytes", 0))) if latest else "-"
+    date_txt = short_date(latest["date"]) if latest else "-"
+    ver_txt = latest["name"] if latest else "-"
+    aid = app["id"]
+
+    return (
+        '<div class="mcard">%(cn)s'
+        '<table width="100%%" cellspacing="0" cellpadding="0" border="0"><tr>'
+        '<td width="56" valign="top">%(icon)s</td>'
+        '<td valign="top"><div class="mname">%(name)s</div>'
+        '<div class="mpkg">%(pkg)s</div>'
+        '<div class="mdesc">%(desc)s</div></td>'
+        '</tr></table>'
+        '<div class="mmeta">版本 <b id="ver%(id)d">%(ver)s</b>'
+        ' &middot; <b id="siz%(id)d">%(size)s</b>'
+        ' &middot; <b id="dat%(id)d">%(date)s</b></div>'
+        '<table class="mact" width="100%%" cellspacing="0" cellpadding="0" border="0"><tr>'
+        '<td class="l"><a class="mbtn dl" id="dl%(id)d" href="%(dl)s">下载</a></td>'
+        '<td class="r"><a class="mbtn" href="app-%(id)d.html">详细信息</a></td>'
+        '</tr></table>'
+        '</div>'
+        % {"id": aid, "cn": corners(), "name": esc(app["name"]),
+           "icon": icon_box(app), "pkg": esc(app["pkg"]), "desc": esc(app["desc"]),
+           "ver": esc(ver_txt), "size": esc(size_txt), "date": esc(date_txt),
+           "dl": esc(dl_url(app, latest)) if latest else "#"})
+
+
+def mobile_shell(title, crumb, main, ctx, scope=None):
+    scope_js = ""
+    if scope is not None:
+        scope_js = ('<script type="text/javascript">var EU_SCOPE = [%s];</script>'
+                    % ",".join(str(i) for i in scope))
+    return (MOBILE_TEMPLATE
+            .replace("{{TITLE}}", esc(title))
+            .replace("{{CRUMB}}", crumb)
+            .replace("{{MAIN}}", main)
+            .replace("{{SCOPE}}", scope_js)
+            .replace("{{BUILT}}", esc(ctx["built"])))
+
+
+def mobile_index_page(apps, ctx):
+    cards = "".join(mobile_card_html(a) for a in apps)
+
+    anns = ctx["announcements"]
+    if anns:
+        ab = "".join('<div class="ann"><div class="t">%s</div>'
+                     '<div class="d">%s</div><div class="c">%s</div></div>'
+                     % (esc(a.get("title", "")),
+                        esc(iso_to_local(a.get("created_at", ""))),
+                        notes_html(a.get("content", ""))) for a in anns)
+    else:
+        ab = '<div class="ann"><div class="c">暂无公告</div></div>'
+
+    main = ('<div class="mcount">共 %d 个应用 / %d 个已发布版本</div>%s'
+            % (len(apps), ctx["total_releases"], cards)
+            + panel("服务公告", '<div id="annBox">%s</div>' % ab,
+                    extra='<b id="annCnt">%d</b>' % len(anns)))
+
+    return mobile_shell("工具下载", "", main, ctx)
+
+
+def mobile_detail_page(app, apps, ctx):
+    latest = latest_of(app)
+    pub = published(app)
+
+    rows = []
+    notes = []
+    for r in pub:
+        rows.append(
+            '<div class="mrow"><table width="100%%" cellspacing="0" cellpadding="0" '
+            'border="0"><tr>'
+            '<td valign="middle"><span class="rv">%s</span>'
+            '<span class="rs">%s &middot; %s &middot; #%d</span></td>'
+            '<td width="74" class="ract" valign="middle">'
+            '<a class="mbtn" href="%s" title="%s">下载</a></td>'
+            '</tr></table></div>'
+            % (esc(r["name"]),
+               esc(r.get("size") or human_size(r.get("bytes", 0))),
+               esc(r["date"]), r["code"],
+               esc(dl_url(app, r)), esc(r.get("file") or r["name"])))
+        if r.get("notes"):
+            notes.append('<div class="rel"><div class="relhd">%s'
+                         '<span>%s &middot; %s</span></div><div class="relbd">%s</div></div>'
+                         % (esc(r["name"]), esc(r["date"]),
+                            esc(r.get("size") or ""), notes_html(r["notes"])))
+
+    # 16 hex chars per line: on a 240px screen a 32-char chunk would be clipped
+    sha = (latest or {}).get("sha256", "")
+    sha_html = "<br>".join(esc(sha[i:i + 16]) for i in range(0, len(sha), 16)) or "—"
+
+    head = (
+        '<div class="mcard mhead-card">%(cn)s'
+        '<table width="100%%" cellspacing="0" cellpadding="0" border="0"><tr>'
+        '<td width="56" valign="top">%(icon)s</td>'
+        '<td valign="top"><div class="mname">%(name)s</div>'
+        '<div class="mpkg">%(pkg)s</div>'
+        '<div class="mdesc">%(desc)s</div></td>'
+        '</tr></table>'
+        '<a class="mbtn dl big" id="dl%(id)d" href="%(dl)s">下载最新版 %(ver)s</a>'
+        '<div class="mmeta">当前版本 <b id="ver%(id)d">%(ver)s</b></div>'
+        '</div>'
+        % {"cn": corners(), "icon": icon_box(app), "name": esc(app["name"]),
+           "pkg": esc(app["pkg"]), "desc": esc(app["desc"]), "id": app["id"],
+           "ver": esc(latest["name"] if latest else "-"),
+           "dl": esc(dl_url(app, latest)) if latest else "#"})
+
+    # single-column definition rows rather than a two-column table: a table
+    # would size its label column to the longest label and then clip the
+    # values once the screen gets down to 240px
+    def drow(label, value, mid=None):
+        return ('<div class="drow"><b>%s</b><span%s>%s</span></div>'
+                % (esc(label), ' id="%s"' % mid if mid else "", value))
+
+    info = ('<div class="mdef">'
+            + drow("版本号", str(latest["code"] if latest else 0))
+            + drow("文件大小", esc((latest or {}).get("size") or "-"), "siz%d" % app["id"])
+            + drow("发布日期", esc((latest or {}).get("date") or "-"), "dat%d" % app["id"])
+            + drow("APK 文件名", esc((latest or {}).get("file") or "-"))
+            + drow("强制更新", "是" if (latest or {}).get("mandatory") else "否")
+            + drow("SHA256", '<span class="mono hash">%s</span>' % sha_html)
+            + '</div>')
+
+    main = (head
+            + panel("版本信息", info)
+            + panel("版本列表", "".join(rows) or
+                    '<div class="empty">该应用尚无已发布版本。</div>',
+                    extra="<b>%d</b>" % len(pub))
+            + panel("版本说明", "".join(notes) or
+                    '<div class="ann"><div class="c">暂无版本说明。</div></div>'))
+
+    crumb = ('<div id="mcrumb"><a href="index.html">资源列表</a>'
+             ' <span>&gt;</span> %s</div>' % esc(app["name"]))
+
+    return mobile_shell("%s - 工具下载" % app["name"], crumb, main, ctx,
+                        scope=[app["id"]])
+
+
 # ------------------------------------------------------------------- output
 def js_str(s):
     return json.dumps(s, ensure_ascii=True).replace("</", "<\\/").replace('"', "&quot;")
@@ -409,13 +553,17 @@ def build():
     pages = {"index.html": index_page(apps, ctx)}
     for a in apps:
         pages["app-%d.html" % a["id"]] = detail_page(a, apps, ctx)
+    pages["mobile/index.html"] = mobile_index_page(apps, ctx)
+    for a in apps:
+        pages["mobile/app-%d.html" % a["id"]] = mobile_detail_page(a, apps, ctx)
 
     total = 0
     for name, html in pages.items():
-        with open(os.path.join(SITE, name), "w", encoding="utf-8",
-                  newline="\n") as f:
+        path = os.path.join(SITE, *name.split("/"))
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
             f.write(html)
-        total += os.path.getsize(os.path.join(SITE, name))
+        total += os.path.getsize(path)
 
     payload = {
         "server": data["server"], "built": ctx["built"], "cols": COLS,
@@ -472,6 +620,7 @@ TEMPLATE = r"""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "h
 		<td align="right">
 			<img class="dot" id="statDot" src="images/dot_off.gif" width="11" height="11" alt=""><span id="statTx">正在连接服务</span>
 			<span class="sep">|</span><span id="clock">--:--:--</span>
+			<span class="sep">|</span><a href="mobile/">切换到手机版</a>
 			<span class="sep">|</span><a href="#" onclick="EU.refresh();return false;">{{REFRESH}}</a>
 		</td>
 	</tr></table>
@@ -501,6 +650,53 @@ TEMPLATE = r"""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "h
 {{SCOPE}}
 <script type="text/javascript" src="catalog.js" charset="utf-8"></script>
 <script type="text/javascript" src="app.js" charset="utf-8"></script>
+</body>
+</html>
+"""
+
+MOBILE_TEMPLATE = r"""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<link rel="shortcut icon" href="../favicon.ico">
+<link rel="stylesheet" type="text/css" href="../style.css">
+<link rel="stylesheet" type="text/css" href="mobile.css">
+</head>
+<body class="mob">
+<div id="mwrap">
+
+<div id="mhead">
+	<table width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
+		<td width="46" valign="middle"><a href="index.html"><img src="../images/logo.png" width="34" height="34" alt=""></a></td>
+		<td valign="middle">
+			<span class="mt">工具下载</span>
+			<span class="ms">ZLIGHT106 Microsystems</span>
+		</td>
+		<td class="mr" valign="middle"><a href="../index.html">桌面版</a></td>
+	</tr></table>
+</div>
+
+<div id="mstat">
+	<table width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
+		<td><img id="statDot" src="../images/dot_off.gif" width="11" height="11" alt=""><span id="statTx">正在连接服务</span></td>
+		<td class="r"><span id="clock">--:--:--</span></td>
+	</tr></table>
+</div>
+
+{{CRUMB}}
+
+<div id="mmain">
+{{MAIN}}
+</div>
+
+<div id="mfoot">工具下载 &middot; 目录生成 {{BUILT}}</div>
+
+</div>
+{{SCOPE}}
+<script type="text/javascript" src="../catalog.js" charset="utf-8"></script>
+<script type="text/javascript" src="../app.js" charset="utf-8"></script>
 </body>
 </html>
 """

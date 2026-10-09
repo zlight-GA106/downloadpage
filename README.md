@@ -8,6 +8,10 @@
 
 ![应用详情](docs/screenshot-detail.png)
 
+手机版在 `/mobile`，窄屏单栏，同样不需要任何现代前端特性：
+
+![手机版](docs/screenshot-mobile.png)
+
 ---
 
 ## 目录
@@ -262,6 +266,7 @@ site/icons/com.zlight.sendtosmb.ico
 
 | 现象 | 原因与处理 |
 | --- | --- |
+| 访问 `/mobile` 跳到了 80 端口 | nginx 只知道容器内的 80，不知道 docker 映射出去的端口，默认补斜杠跳转会丢端口。配置里已用 `return 301 $scheme://$http_host/mobile/;` 显式带上原样 Host；换端口后仍应正常 |
 | 页面能开，但图片全是 403 | 站点目录权限不对或目录缺执行位。跑 `chmod -R a+rX <DEPLOY_DIR>`。**不要**用 `chmod 644 dir/*`——通配符会连带命中子目录并抹掉其执行位，反而制造 403 |
 | 重新发布后看到的还是旧页面 | 本项目响应头是 `Cache-Control: no-cache`，正常刷新即可。若浏览器里存有更早的长缓存版本，按一次 `Ctrl+F5` |
 | 容器起来就退出 | 看 `docker logs <容器名>`；多半是 nginx 配置语法错，用 `docker exec ... nginx -t` 定位 |
@@ -283,15 +288,19 @@ site/                     部署到容器 /usr/share/nginx/html 的静态站点�
   app.js                  ES3 客户端脚本（实时版本校验 / 排序 / 筛选）
   catalog.js              目录数据（纯 ASCII \uXXXX 转义，构建生成）
   favicon.ico
-  images/                 19 个 GIF 条带 + 透明底 PNG 图标
+  images/                 25 个 GIF 条带 + 透明底 PNG 图标
   icons/                  可选的每应用图标，按包名自动识别
+  mobile/                 手机版（构建生成）
+    index.html            窄屏单栏应用列表
+    app-<id>.html         窄屏应用详情页
+    mobile.css            在 ../style.css 之上的窄屏覆盖
 deploy/nginx.conf         容器内 /etc/nginx/conf.d/default.conf，含 {{EU_UPSTREAM}} 占位符
 docs/                     README 用截图
 tools/config.py           读取 deploy.env / 环境变量
 tools/deploy.env.example  配置模板，复制成 deploy.env 后填写
 tools/harvest.py          登录 EasyUpdate 后台抓取应用与版本 -> build/catalog.json
 tools/make_assets.py      用 Pillow 生成全部皮肤位图与图标
-tools/build_site.py       渲染 index.html、app-<id>.html 与 catalog.js
+tools/build_site.py       渲染桌面版与手机版页面、catalog.js
 tools/deploy.py           上传并用 nginx 容器发布
 tools/devserver.py        本地预览（静态目录 + /api/ 代理，等价于线上 nginx）
 tools/sshrun.py           SSH/SFTP 小工具
@@ -309,12 +318,31 @@ build/                    中间产物（catalog.json、截图等），不入库
 - **应用详情页**：版本信息（最新版本、版本号、大小、发布日期、APK 文件名、强制更新、
   SHA256）、版本列表（每个历史版本一个下载按钮）、逐版本说明、下载与校验说明。
   左侧换成应用导航，可直接跳到别的应用详情页。
+- **手机版 `/mobile`**：窄屏单栏，触屏尺寸按钮。含应用列表与逐应用详情页，
+  账号信息、版本列表、版本说明与桌面版一致，下载同样走同源代理。
+  桌面版顶部信息条有「切换到手机版」链接，手机版右上角有「桌面版」返回链接。
+
+### 手机版是怎么做的
+
+`site/mobile/` 里是构建出来的页面，它们：
+
+- 复用 `../style.css` 打底，再叠一层 `mobile.css` 覆盖尺寸，不另起一套皮肤；
+- 复用 `../images/` 的位图，只额外生成 6 条更高的渐变条带
+  （`m_bar` / `m_hd` / `m_btn` / `m_dl` 等）——`repeat-x` 的条带只覆盖顶部若干像素，
+  再往下会露出纯背景色，所以触屏尺寸的控件必须有自己的高条带，不能拉伸 23px 的那条；
+- 复用 `../app.js` 做版本实时校验与时钟，详情页用 `EU_SCOPE` 只查自己那一个应用。
+
+窄屏上有两处刻意不写成表格：版本信息用单列「标签 值」行，让长值自然折行
+（两列表格会先把标签列占满，把日期和 SHA256 挤到裁掉）；SHA256 每 16 个字符断一行。
+顶部标题栏不写死高度，240px 宽的老机器上副标题会折行，写死会压到下面的状态条；
+背景色取渐变条带的最后一色，条带不够高时向下延伸看不出接缝。
 
 ---
 
 ## IE6 兼容说明
 
-页面按 IE6（JScript 5.6 / IE6 标准模式）编写，实际遵守的边界：
+页面按 IE6（JScript 5.6 / IE6 标准模式）编写，**桌面版和手机版用的是同一套约束**，
+手机版没有为了窄屏引入 media query 或视口单位：
 
 | 方面 | 采用 | 未采用 |
 | --- | --- | --- |
@@ -324,6 +352,7 @@ build/                    中间产物（catalog.json、截图等），不入库
 | 圆角 | 9x9 圆角遮罩 GIF，绝对定位到四角 | `border-radius` |
 | 透明度 | 条带用 GIF；图标用 PNG-8 + 单一全透明调色板索引（tRNS） | alpha 通道 PNG、`rgba()`、`opacity` |
 | 悬停 | 仅 `<a>` 上的 `:hover` | 非 a 元素的 `:hover`、`transition` |
+| 响应式 | 手机版用百分比宽度 + 表格折行自适应窄屏 | `@media`、`vw`/`vh`、`max-width` |
 | 脚本 | ES3 语法，`ActiveXObject("Msxml2.XMLHTTP")` | `JSON`、`addEventListener`、`Array#forEach`、模板字符串、尾逗号 |
 | 数据 | 目录烘焙成 JS 对象字面量；接口响应用自带迷你 JSON 解析器 | `JSON.parse`、`fetch` |
 
