@@ -584,13 +584,31 @@ def mobile_info_page(apps, ctx):
     return mobile_shell("服务状态 - 工具下载", crumb, main, ctx)
 
 
+def mobile_search_row():
+    """搜索框。搜索是全量的——匹配的是整个目录，不只是当前这一页的 3 条，
+    所以结果区由 app.js 用 catalog.js 里的数据渲染。"""
+    return ('<div class="msearch">'
+            '<table class="msearchtab" width="100%" cellspacing="0" cellpadding="0" '
+            'border="0"><tr>'
+            '<td><input id="kw" class="mkw" type="text" size="16" maxlength="40" '
+            'onkeyup="EU.mSearch(this.value);"></td>'
+            '<td class="b"><a class="mpg" href="#" '
+            'onclick="EU.mSearch(document.getElementById(\'kw\').value);return false;">'
+            '搜索</a></td>'
+            '</tr></table></div>')
+
+
 def mobile_index_page(apps, ctx, page, pages):
     chunk = apps[(page - 1) * MOBILE_LIST_SIZE:page * MOBILE_LIST_SIZE]
     cards = "".join(mobile_card_html(a) for a in chunk)
     # 页码留在翻页控件中间那一格，总数挪到页脚——挤在一格里 240px 宽会折行
     pager = mobile_pager(page, pages, mobile_list_url)
 
-    main = mobile_section_tabs("apps") + pager + cards
+    # 静态内容包进 mpage：一旦开始搜索就整块隐藏，结果放进 mres，
+    # 清空关键字再换回来——不用重建 innerHTML，省掉还原逻辑
+    main = (mobile_section_tabs("apps") + mobile_search_row()
+            + '<div id="mpage">' + pager + cards + '</div>'
+            + '<div id="mres" class="mres"></div>')
     foot = esc("共 %d 个应用 / %d 个版本 · 目录生成 %s"
                % (len(apps), ctx["total_releases"], ctx["built"]))
     return mobile_shell("工具下载", "", main, ctx, footer=foot)
@@ -804,6 +822,7 @@ def build():
             "id": a["id"], "name": a["name"], "pkg": a["pkg"], "cat": a["cat"],
             "letter": a["letter"], "desc": a["desc"],
             "latest_code": (latest_of(a) or {}).get("code", 0),
+            "latest_name": (latest_of(a) or {}).get("name", ""),
             "latest_size": (latest_of(a) or {}).get("size", ""),
             "latest_bytes": (latest_of(a) or {}).get("bytes", 0),
             "latest_date": (latest_of(a) or {}).get("date", ""),

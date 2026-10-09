@@ -195,10 +195,15 @@ var EU = (function () {
 	}
 
 	/* ------------------------------------------------- 版本实时校验 */
+	/* 手机版搜索结果里的下载链接要用校验到的最新版本号，
+	   所以把每个应用的接口返回留一份在这里。 */
+	var liveInfo = {};
+
 	function updateOne(app, body) {
 		var info = decode(body);
 		if (!info || !info.package_name) { return false; }
 		if (!info.update_available) { return true; }
+		liveInfo[app.id] = info;
 		setText("ver" + app.id, info.version_name);
 		setText("siz" + app.id, fmtSize(info.size));
 		setText("dat" + app.id, shortDate(info.published_at));
@@ -211,6 +216,65 @@ var EU = (function () {
 			show("bdg" + app.id, true);
 		}
 		return true;
+	}
+
+	/* --------------------------------------------------- 手机版搜索 */
+	function dlHref(app) {
+		var lv = liveInfo[app.id];
+		var code = lv ? lv.version_code : app.latest_code;
+		return "/api/v1/apps/" + app.pkg + "/releases/" + code + "/download";
+	}
+
+	function resRows(hits) {
+		var out = [], i, a, lv, size, ver;
+		for (i = 0; i < hits.length; i++) {
+			a = hits[i];
+			lv = liveInfo[a.id];
+			ver = lv ? lv.version_name : a.latest_name;
+			size = lv ? fmtSize(lv.size) : a.latest_size;
+			out[out.length] =
+				'<div class="mresrow"><table width="100%" cellspacing="0" ' +
+				'cellpadding="0" border="0"><tr>' +
+				'<td valign="middle"><a class="rname" href="app-' + a.id + '.html">' +
+				esc(a.name) + '</a>' +
+				'<span class="rsub">' + esc(a.cat) + ' &middot; ' + esc(ver) +
+				' &middot; ' + esc(size) + '</span></td>' +
+				'<td width="74" class="ract" valign="middle">' +
+				'<a class="mbtn" href="' + dlHref(a) + '">下载</a></td>' +
+				'</tr></table></div>';
+		}
+		return out.join("");
+	}
+
+	function buildRes(hits, q) {
+		if (hits.length === 0) {
+			return '<div class="mcount">没有匹配「' + esc(q) + '」的应用。</div>';
+		}
+		return '<div class="mcount">找到 ' + hits.length + ' 个应用</div>'
+			+ resRows(hits);
+	}
+
+	function mSearch(q) {
+		q = ("" + (q || "")).toLowerCase();
+		var page = $("mpage"), res = $("mres");
+		if (!page || !res || !CAT) { return; }
+		if (q === "") {
+			res.innerHTML = "";
+			res.style.display = "none";
+			page.style.display = "";
+			return;
+		}
+		var hits = [], i, a;
+		for (i = 0; i < CAT.apps.length; i++) {
+			a = CAT.apps[i];
+			if ((a.name + " " + a.pkg + " " + a.desc + " " + a.cat)
+					.toLowerCase().indexOf(q) >= 0) {
+				hits[hits.length] = a;
+			}
+		}
+		res.innerHTML = buildRes(hits, q);
+		page.style.display = "none";
+		res.style.display = "";
 	}
 
 	function checkAt(list, i) {
@@ -392,6 +456,8 @@ var EU = (function () {
 			state.kw = ("" + (kw || "")).toLowerCase();
 			render();
 		},
+		/* 手机版搜索：匹配整个目录而不是当前这一页，结果替换卡片区 */
+		mSearch: mSearch,
 		sortBy: function (kind, el) {
 			state.sort = kind;
 			var bar = $("sortbar");

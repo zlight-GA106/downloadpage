@@ -47,14 +47,14 @@ body.mob {
 
 /* ------------------------------------------------------------- 状态条 */
 #mstat {
-	height: 26px;
-	margin: 0 0 8px 0;
+	height: 24px;
+	margin: 0 0 7px 0;
 	padding: 0 8px;
 	background: #FFFFFF url(../images/subhd.gif) repeat-x 0 0;
 	border-bottom: 1px solid #A8D6EF;
 	color: #10456B;
 	font-size: 12px;
-	line-height: 26px;
+	line-height: 24px;
 	}
 #mstat img { vertical-align: -1px; margin-right: 5px; }
 #mstat td.r { text-align: right; color: #2C6E96; }
@@ -67,14 +67,14 @@ body.mob {
 #mcrumb a { color: #15628F; }
 #mcrumb span { color: #9BB8C9; padding: 0 4px; }
 
-#mmain { padding: 7px 8px 6px 8px; }
+#mmain { padding: 6px 8px 6px 8px; }
 
 /* ------------------------------------------------------------ 翻页控件 */
 /* 手机版以翻页为主：列表、历史版本、版本说明各自分页，一屏一页。
    翻页控件在列表页上下各放一份，不必先滑到底才能翻页。 */
 .mpager {
 	margin: 0 0 6px 0;
-	padding: 5px 7px;
+	padding: 4px 7px;
 	background: #FFFFFF url(../images/m_hd.gif) repeat-x 0 0;
 	border: 1px solid #7FB9DC;
 	}
@@ -144,6 +144,44 @@ span.mpgoff {
 	}
 .mpgnum a.mpgn:hover { background: #EAF7FF; color: #0B4A70; }
 
+/* ------------------------------------------------------------ 搜索 */
+.msearch { margin: 0 0 4px 0; }
+/* table-layout: fixed 让输入框那一格的宽度是可算的，
+   输入框按百分比取宽就不会把格子撑破（IE6 是 content-box） */
+table.msearchtab { table-layout: fixed; }
+table.msearchtab td.b { width: 62px; padding-left: 5px; }
+.mkw {
+	width: 94%;
+	height: 20px;
+	padding: 0 3px;
+	border: 1px solid #7FB9DC;
+	background: #FFFFFF;
+	color: #123A52;
+	font-family: Tahoma, Arial, SimSun, sans-serif;
+	font-size: 14px;
+	}
+
+/* 搜索结果：紧凑行，不铺开成大卡片，一屏能放下全部命中 */
+.mresrow {
+	padding: 7px 0;
+	border-bottom: 1px dashed #CBE6F6;
+	}
+.mresrow .rname {
+	display: block;
+	color: #0B4A70;
+	font-size: 15px;
+	line-height: 20px;
+	font-weight: bold;
+	}
+.mresrow .rsub {
+	display: block;
+	color: #6E93A8;
+	font-size: 12px;
+	line-height: 17px;
+	}
+.mresrow td.ract { padding-left: 8px; }
+.mres { padding: 0; }
+
 /* ---------------------------------------------------- 详情页的翻页标签 */
 .mtabs { margin: 0 0 10px 0; }
 .mtabs table { table-layout: fixed; }
@@ -168,7 +206,7 @@ span.mpgoff {
 	}
 .mtabs td a:hover { color: #C4551B; text-decoration: none; }
 /* 分区标签（应用 / 分类 / 公告 / 状态）紧挨着下面的翻页控件，不留底部外边距 */
-.mtabs.sect { margin-bottom: 4px; }
+.mtabs.sect { margin-bottom: 2px; }
 
 /* ------------------------------------------ 分类列表（复用桌面版的 a.nvi） */
 .mob a.nvi {
@@ -189,8 +227,8 @@ span.mpgoff {
 /* --------------------------------------------------------------- 应用卡 */
 .mcard {
 	position: relative;
-	margin: 0 0 5px 0;
-	padding: 6px;
+	margin: 0 0 4px 0;
+	padding: 5px;
 	background: #FFFFFF;
 	border: 1px solid #7FB9DC;
 	}
@@ -211,7 +249,7 @@ span.mpgoff {
 .mcard .mname {
 	color: #0B4A70;
 	font-size: 16px;
-	line-height: 20px;
+	line-height: 19px;
 	font-weight: bold;
 	}
 .mcard .mpkg {
@@ -222,14 +260,14 @@ span.mpgoff {
 	}
 .mcard .mdesc {
 	height: 34px;
-	margin: 2px 0 0 0;
+	margin: 1px 0 0 0;
 	color: #2E5B76;
 	line-height: 17px;
 	overflow: hidden;
 	}
 .mcard .mmeta {
-	margin: 4px 0 0 0;
-	padding: 2px 0 0 0;
+	margin: 3px 0 0 0;
+	padding: 1px 0 0 0;
 	border-top: 1px solid #E2F1FA;
 	color: #6E93A8;
 	font-size: 12px;
@@ -238,18 +276,18 @@ span.mpgoff {
 .mcard .mmeta b { color: #12557F; font-weight: bold; }
 
 /* 按钮：触屏尺寸，一行两个平分 */
-table.mact { margin: 5px 0 0 0; }
+table.mact { margin: 4px 0 0 0; }
 table.mact td.l { padding-right: 5px; }
 table.mact td.r { padding-left: 5px; }
 a.mbtn {
 	display: block;
-	height: 32px;
+	height: 30px;
 	background: #DDEEF9 url(../images/m_btn.gif) repeat-x 0 0;
 	border: 1px solid #6FA8CC;
 	color: #10456B;
 	font-family: Tahoma, Arial, SimSun, sans-serif;
 	font-size: 14px;
-	line-height: 32px;
+	line-height: 30px;
 	text-align: center;
 	text-decoration: none;
 	overflow: hidden;
@@ -332,7 +370,7 @@ a.mbtn.big {
 .mob table.stat td.n.wide { font-size: 12px; }
 
 #mfoot {
-	padding: 7px;
+	padding: 6px;
 	background: #3E7D14 url(../images/footer.gif) repeat-x 0 0;
 	color: #F4FFE8;
 	font-size: 11px;
