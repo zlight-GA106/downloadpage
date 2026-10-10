@@ -215,6 +215,14 @@ var EU = (function () {
 		if (parseInt(info.version_code, 10) !== parseInt(app.latest_code, 10)) {
 			show("bdg" + app.id, true);
 		}
+		/* 产物类型（apk / zip / …）也可能变，跟着接口走 */
+		if (info.artifact_type) {
+			var tp = $("typ" + app.id);
+			if (tp) {
+				tp.innerHTML = esc(("" + info.artifact_type).toUpperCase());
+				tp.className = "ctype " + ("" + info.artifact_type).toLowerCase();
+			}
+		}
 		return true;
 	}
 

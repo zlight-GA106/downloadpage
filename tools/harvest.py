@@ -126,6 +126,7 @@ def harvest_app_detail(op, app):
             "notes": "",
             "sha256": "",
             "file": "",
+            "file_type": "",
         })
 
 
@@ -134,10 +135,15 @@ def harvest_release_detail(op, rel):
     ta = re.search(r'<textarea name="release_notes"[^>]*>(.*?)</textarea>', page, re.S)
     if ta:
         rel["notes"] = htmllib.unescape(ta.group(1)).strip()
-    for dt, pattern in (("APK", "file"), ("SHA256", "sha256")):
-        m = re.search(r"<dt>%s</dt><dd[^>]*>(.*?)</dd>" % dt, page, re.S)
-        if m:
-            rel[pattern] = clean(m.group(1))
+    # 版本信息面板的第一个 <dt>/<dd> 就是「文件类型 / 文件名」，标签跟着类型走
+    # （APK、ZIP……），所以按位置取，不要写死成 APK——写死的话 zip 版本会读不到文件名
+    m = re.search(r"<dt>([^<]*)</dt><dd[^>]*>(.*?)</dd>", page, re.S)
+    if m:
+        rel["file_type"] = clean(m.group(1))
+        rel["file"] = clean(m.group(2))
+    m = re.search(r"<dt>SHA256</dt><dd[^>]*>(.*?)</dd>", page, re.S)
+    if m:
+        rel["sha256"] = clean(m.group(1))
     m = re.search(r'id="release-mandatory"[^>]*\bchecked\b', page)
     if m:
         rel["mandatory"] = True
@@ -187,8 +193,15 @@ def main():
                         rel["notes"] = info["release_notes"]
                     rel["mandatory"] = bool(info.get("mandatory"))
                     rel["published_at"] = info.get("published_at", "")
-        print("  %-22s %-34s %d release(s)" %
-              (app["name"], app["pkg"], len(app["releases"])))
+                    # 公开接口带 artifact_type / file_name，比后台页面更权威
+                    if info.get("artifact_type"):
+                        rel["file_type"] = str(info["artifact_type"]).upper()
+                    if info.get("file_name"):
+                        rel["file"] = info["file_name"]
+        kinds = sorted(set(r["file_type"] for r in app["releases"] if r["file_type"]))
+        print("  %-22s %-34s %d release(s)  %s" %
+              (app["name"], app["pkg"], len(app["releases"]),
+               "/".join(kinds) or "?"))
 
     try:
         ann = json.loads(urllib.request.urlopen(

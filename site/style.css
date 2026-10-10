@@ -239,6 +239,30 @@ a.nvi.on b { color: #12557F; font-weight: bold; }
 .ann .d { color: #7A9AAC; font-size: 11px; font-family: Tahoma, Arial, sans-serif; }
 .ann .c { color: #2E5B76; }
 
+/* 文件类型标签：EasyUpdate 除了 APK 还能放别的产物（例如 ZIP），
+   类型跟着版本走，浏览时就能看出这个应用下的是哪一种 */
+.ctype {
+	display: inline-block;
+	height: 14px;
+	padding: 0 5px;
+	background: #DCEEF9;
+	border: 1px solid #9CCDE8;
+	color: #15628F;
+	font-family: Tahoma, Arial, sans-serif;
+	font-size: 10px;
+	font-weight: normal;
+	line-height: 14px;
+	text-align: center;
+	vertical-align: 1px;
+	zoom: 1;
+	}
+.ctype.zip {
+	background: #FBE3B8;
+	border-color: #D79B33;
+	color: #7A4200;
+	}
+.card .chd .ctype { vertical-align: 0; }
+
 /* --------------------------------------------------------------- 分栏网格 */
 #grid { width: 100%; table-layout: fixed; }
 #grid td.cell {

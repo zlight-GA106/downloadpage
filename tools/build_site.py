@@ -130,6 +130,38 @@ def latest_of(app):
     return pub[0] if pub else (app["releases"][0] if app["releases"] else None)
 
 
+def file_type(app):
+    """APK / ZIP / ... of the newest published release ('' when unknown)."""
+    return ((latest_of(app) or {}).get("file_type") or "").upper()
+
+
+def type_chip(app):
+    """文件类型小标签。EasyUpdate 支持 APK 以外的产物（例如 ZIP），
+    类型跟着版本走，所以取最新那个版本的 file_type。"""
+    t = file_type(app)
+    if not t:
+        return ""
+    return ('<span class="ctype %s" id="typ%d">%s</span>'
+            % (esc(t.lower()), app["id"], esc(t)))
+
+
+def check_hint(app):
+    """校验说明随产物类型变化——ZIP 没有签名与包名可核对。"""
+    if file_type(app) == "ZIP":
+        how = ("比对文件大小与 SHA256，解压后核对文件清单与版本说明；"
+               "任一不符时应删除缓存后重新下载。")
+    else:
+        how = ("比对文件大小与 SHA256，再核对包名、版本号与安装签名；"
+               "任一不符时应删除缓存后重新下载。")
+    return ('<div class="hintbox">'
+            '<p>下载地址由本站同源反向代理转发到 EasyUpdate，'
+            '链接可直接复制或交给客户端使用。</p>'
+            '<p>校验方式：%s</p>'
+            '<p>接口返回 <b>size</b>（字节）、<b>sha256</b>（64 位十六进制）与 '
+            '<b>artifact_type</b>，可直接用于脚本校验。</p>'
+            '</div>' % how)
+
+
 def dl_url(app, rel):
     return "/api/v1/apps/%s/releases/%d/download" % (app["pkg"], rel["code"])
 
@@ -144,7 +176,7 @@ def card_html(app):
 
     return (
         '<div class="card" id="card%(id)d">%(cn)s'
-        '<div class="chd"><span class="ttl">%(name)s</span>'
+        '<div class="chd"><span class="ttl">%(name)s %(chip)s</span>'
         '<span class="bdg" id="bdg%(id)d" style="display:none">更新</span></div>'
         '<div class="cbody">'
         '<table width="100%%" cellspacing="0" cellpadding="0" border="0"><tr>'
@@ -164,6 +196,7 @@ def card_html(app):
         '</tr></table>'
         '</div></div>'
         % {"id": aid, "cn": corners(), "name": esc(app["name"]),
+           "chip": type_chip(app),
            "icon": icon_box(app), "pkg": esc(app["pkg"]), "desc": esc(app["desc"]),
            "ver": esc(ver_txt), "size": esc(size_txt), "date": esc(date_txt),
            "dl": esc(dl_url(app, latest)) if latest else "#"})
@@ -310,7 +343,8 @@ def detail_page(app, apps, ctx):
             '<tr><td>版本号</td><td class="n wide">%d</td></tr>'
             '<tr><td>文件大小</td><td class="n wide" id="siz%d">%s</td></tr>'
             '<tr><td>发布日期</td><td class="n wide" id="dat%d">%s</td></tr>'
-            '<tr><td>APK 文件名</td><td class="n wide mono">%s</td></tr>'
+            '<tr><td>文件类型</td><td class="n wide">%s</td></tr>'
+            '<tr><td>文件名</td><td class="n wide mono">%s</td></tr>'
             '<tr><td>强制更新</td><td class="n wide">%s</td></tr>'
             '<tr><td>SHA256</td><td class="n wide mono">%s</td></tr>'
             '</table>'
@@ -318,6 +352,7 @@ def detail_page(app, apps, ctx):
                latest["code"] if latest else 0,
                app["id"], esc((latest or {}).get("size") or "-"),
                app["id"], esc((latest or {}).get("date") or "-"),
+               type_chip(app) or "—",
                esc(fname),
                "是" if (latest or {}).get("mandatory") else "否",
                sha_html))
@@ -333,7 +368,7 @@ def detail_page(app, apps, ctx):
             '<td class="cl" width="42%%" valign="top">%s</td>'
             '<td class="cr" valign="top">%s</td>'
             '</tr></table>'
-            % (panel("版本信息", info), panel("下载与校验", CHECK_HINT)))
+            % (panel("版本信息", info), panel("下载与校验", check_hint(app))))
 
     main = (head + cols
             + panel("版本列表", vtab, extra="<b>%d</b>" % len(pub))
@@ -347,15 +382,6 @@ def detail_page(app, apps, ctx):
     return shell("%s - 工具下载" % app["name"], crumb, main,
                  left_panels(apps, ctx, "detail", app["id"]), ctx,
                  refresh_label="刷新版本", scope=[app["id"]])
-
-
-CHECK_HINT = (
-    '<div class="hintbox">'
-    '<p>下载地址由本站同源反向代理转发到 EasyUpdate，链接可直接复制或交给客户端使用。</p>'
-    '<p>校验方式：比对文件大小与 SHA256，再核对包名、版本号与安装签名；'
-    '任一不符时应删除缓存后重新下载。</p>'
-    '<p>接口返回 <b>size</b>（字节）与 <b>sha256</b>（64 位十六进制），可直接用于脚本校验。</p>'
-    '</div>')
 
 
 def index_page(apps, ctx):
@@ -397,7 +423,7 @@ def mobile_card_html(app):
         '<div class="mcard">%(cn)s'
         '<table width="100%%" cellspacing="0" cellpadding="0" border="0"><tr>'
         '<td width="56" valign="top">%(icon)s</td>'
-        '<td valign="top"><div class="mname">%(name)s</div>'
+        '<td valign="top"><div class="mname">%(name)s %(chip)s</div>'
         '<div class="mpkg">%(pkg)s</div>'
         '<div class="mdesc">%(desc)s</div></td>'
         '</tr></table>'
@@ -410,6 +436,7 @@ def mobile_card_html(app):
         '</tr></table>'
         '</div>'
         % {"id": aid, "cn": corners(), "name": esc(app["name"]),
+           "chip": type_chip(app),
            "icon": icon_box(app), "pkg": esc(app["pkg"]), "desc": esc(app["desc"]),
            "ver": esc(ver_txt), "size": esc(size_txt), "date": esc(date_txt),
            "dl": esc(dl_url(app, latest)) if latest else "#"})
@@ -649,7 +676,8 @@ def mobile_app_page(app, ctx):
                    "siz%d" % app["id"])
             + drow("发布日期", esc((latest or {}).get("date") or "-"),
                    "dat%d" % app["id"])
-            + drow("APK 文件名", esc((latest or {}).get("file") or "-"))
+            + drow("文件类型", type_chip(app) or "—")
+            + drow("文件名", esc((latest or {}).get("file") or "-"))
             + drow("强制更新", "是" if (latest or {}).get("mandatory") else "否")
             + drow("SHA256", '<span class="mono hash">%s</span>' % sha_html)
             + '</div>')
@@ -821,6 +849,7 @@ def build():
         "apps": [{
             "id": a["id"], "name": a["name"], "pkg": a["pkg"], "cat": a["cat"],
             "letter": a["letter"], "desc": a["desc"],
+            "file_type": (latest_of(a) or {}).get("file_type", ""),
             "latest_code": (latest_of(a) or {}).get("code", 0),
             "latest_name": (latest_of(a) or {}).get("name", ""),
             "latest_size": (latest_of(a) or {}).get("size", ""),
